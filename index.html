@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <title> Places I've visited in San Francisco</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+
+        .container {
+            height: 100%;
+            position: relative;
+        }
+
+        h3 {
+            color: #2c497f;
+            margin-left: 10px;
+        }
+
+        .content {
+            text-align: center;
+            float: left;
+            margin: auto;
+            width: 25%;
+        }
+
+        #map {
+            height: 100%;
+            width: 75%;
+            margin: auto;
+            margin-right: 0;
+        }
+
+        #pano {
+            width: 200px;
+            height: 200px;
+        }
+
+        #zoom-to-area-text {
+            position: relative;
+            width: 70%;
+            font-size: 12px;
+        }
+        #show-listings, #hide-listings{
+            width: 40%;
+        }
+
+        #zoom-to-area {
+            width: 24%;
+        }
+
+        .text {
+            color: #2c497f;
+        }
+
+        hr {
+            width: 75%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media only screen and (max-width: 1500px) {
+            h3 {
+                font-size: 28px;
+            }
+            #show-listings, #hide-listings, #zoom-to-area-text,
+            #zoom-to-area, #max-duration,#mode,
+            #search-within-time-text, #search-within-time,
+            #places-search, #go-places{
+                font-size: 18px;
+            }
+            .text{
+                font-size: 22px;
+            }
+        }
+        @media only screen and (max-width: 800px) {
+            h3 {
+                font-size: 24px;
+            }
+            #show-listings, #hide-listings,#zoom-to-area-text,
+            #zoom-to-area, #max-duration,#mode,
+            #search-within-time-text, #search-within-time,
+            #places-search, #go-places{
+                display: block;
+                font-size: 16px;
+                margin: auto;
+                width: 75%;
+                margin-bottom: 2px;
+            }
+            #zoom-to-area, #go-places, #search-within-time{
+                width: 35%;
+            }
+
+            .text{
+                font-size: 20px;
+            }
+            #map{
+                width: 75%;
+            }
+        }
+        @media only screen and (max-width: 620px) {
+            body {
+            background-color: #ffffff;
+            }
+            h3 {
+                font-size: 20px;
+            }
+            .content{
+                width:100%;
+                
+            }
+            #show-listings, #hide-listings,#zoom-to-area-text,
+            #zoom-to-area, #max-duration,#mode,
+            #search-within-time-text, #search-within-time,
+            #places-search, #go-places{
+                font-size: 14px;
+                width: 50%;
+                margin-bottom: 1px;
+                display: inline;
+            }
+            #places-search{
+                margin-bottom: 15px;
+            }
+            #zoom-to-area, #go-places, #search-within-time{
+                width: 10%;
+            }
+            #max-duration, #mode{
+                width: 20%;
+            }
+            hr{
+                margin-bottom: 8px;
+                margin-top: 8px;
+                width: 50%;
+            }
+            .text{
+                font-size: 18px;
+            }
+            #map{
+                width: 100%;
+                height: 75%;
+             }
+            #show-listings, #hide-listings, #zoom-to-area,
+            #search-within-time,    {
+                border-radius: 8px;
+                background-color: #ffffff;
+                border: 2px solid #2e8fba;
+            }
+
+            #zoom-to-area-text, #search-within-time-text,
+            #places-search, #max-duration, #mode{
+                border: 2px solid #2e8fba;
+                border-radius: 2px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="content">
+            <h3> Where to in San Francisco? </h3>
+
+            <button id="show-listings">Show Listings </button>
+            <button id="hide-listings">Hide Listings </button>
+
+            <hr>
+
+            <input type="text" id="zoom-to-area-text" placeholder="&nbsp Enter your favorite area">
+            <input type="button" id="zoom-to-area" value="Zoom">
+
+            <hr>
+
+
+            <span class="text"> Within </span>
+            <select id="max-duration">
+                <option value="10">10 min</option>
+                <option value="15"> 15 min</option>
+                <option value="30"> 30 min</option>
+                <option value="60"> 1 hour</option>
+            </select>
+
+            <select id="mode">
+                <option value="DRIVING"> Drive </option>
+                <option value="WALKING"> Walk </option>
+                <option value="BICYCLING"> Bicycle </option>
+                <option value="TRANSIT"> Transit </option>
+            </select>
+
+            <span class="text">of</span>
+
+            <input type="text" id="search-within-time-text" placeholder=" &nbsp Ex: Google Office">
+            <input type="button" id="search-within-time" value="GO">
+
+            <hr>
+
+            <span class="text"> Search for nearby places </span>
+            <br>
+            <input id="places-search" type="text" placeholder=" &nbsp Ex: Pizza delivery in SF">
+            <input id="go-places" type="button" value="GO">
+
+        </div>
+
+        <div id="map"> </div>
+    </div>
+
+     <script>
+      var map;
+      // Create a new blank array for all the listing markers.
+      var markers = [];
+      // Create placemarkers array to use in multiple functions to have control
+      // over the number of places that show.
+      var placeMarkers = [];
+      function initMap() {
+        // Create a styles array to use with the map.
+           var styles = [{
+                    featureType: 'road.local',
+                    elementType: 'geometry',
+                    stylers: [{
+                            color: '#e4bfbf'
+                        },
+                        {
+                            weight: 0.5
+                        }
+                    ]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'labels.text.fill',
+                    stylers: [{
+                        color: '#D4AC0D'
+                    }]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'geometry',
+                    stylers: [{
+                            color: '#A9DFBF'
+                        },
+                        {
+                            weight: 0.5
+                        }
+                    ]
+                },
+                {
+                    featureType: 'water',
+                    stylers: [{
+                        color: '#BFC9CA'
+                    }]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'labels.text.fill',
+                    stylers: [{
+                        color: '#1a66db  '
+                    }]
+                },
+                {
+                    featureType: 'transit.station.bus',
+                    elementType: 'labels.icon',
+                    stylers: [{
+                        color: '#D4AC0D'
+                    }]
+                },
+                {
+                    featureType: 'administrative.neighborhood',
+                    elementType: 'labels.text.fill',
+                    stylers: [{
+                            color: '#839192'
+                        },
+                        {
+                            weight: 1
+                        }
+                    ]
+                },
+                {
+                    featureType: 'transit.line',
+                    elementType: "labels.text.stroke",
+                    stylers: [{
+                            hue: '#9a27b0'
+                        },
+                        {
+                            weight: 5
+                        }
+                    ]
+                }
+            ];
+        // Constructor creates a new map - only center and zoom are required.
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: {
+                    lat: 37.721897,
+                    lng: -122.478209
+                },
+                zoom: 13,
+                styles: styles,
+                mapTypeControl: true,
+                //clickableIcons: false, - It is true by default. If true, we can click on POI.
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.DROPDOWN_MENU, // other options are default and horizontal bar
+                    // position: google.maps.ControlPosition.TOP_CENTER - we can change the position of all these 'control' using the position key.
+                }
+                /*disableDefaultUI: true - this disables all the default google UI's that includes Zoom, Map Type, Scale, Street View (pegman icon), rotate, and fullscreen. We can set these controls to either true (to display) or to false (to hide). Although all of them except scale are set to true by default.
+                  zoomControl: boolean,
+                  mapTypeControl: boolean,
+                  scaleControl: boolean,
+                  streetViewControl: boolean,
+                  rotateControl: boolean,
+                  fullscreenControl: boolean
+                */
+            });
+        // This autocomplete is for use in the search within time entry box.
+        var timeAutocomplete = new google.maps.places.Autocomplete(
+            document.getElementById('search-within-time-text'));
+        // This autocomplete is for use in the geocoder entry box.
+        var zoomAutocomplete = new google.maps.places.Autocomplete(
+            document.getElementById('zoom-to-area-text'));
+        // Bias the boundaries within the map for the zoom to area text.
+        zoomAutocomplete.bindTo('bounds', map);
+        // Create a searchbox in order to execute a places search
+        var searchBox = new google.maps.places.SearchBox(
+            document.getElementById('places-search'));
+        // Bias the searchbox to within the bounds of the map.
+        searchBox.setBounds(map.getBounds());
+        
+        var locations = [{
+                    title: 'Mela Tandoori',
+                    label: 'F',
+                    location: {
+                        lat: 37.781318,
+                        lng: -122.419494
+                    }
+                },
+                {
+                    title: 'San Francisco International Airport',
+                    label: 'A',
+                    location: {
+                        lat: 37.621313,
+                        lng: -122.378955
+                    }
+                },
+                {
+                    title: 'The GreenHouse Cafe',
+                    label: 'F',
+                    location: {
+                        lat: 37.737498,
+                        lng: -122.469379
+                    }
+                },
+                {
+                    title: 'Home',
+                    label: 'H',
+                    location: {
+                        lat: 37.720255,
+                        lng: -122.483666
+                    }
+                },
+                {
+                    title: 'Halal Wings Plus',
+                    label: 'F',
+                    location: {
+                        lat: 37.786305,
+                        lng: -122.413363
+                    }
+                },
+                {
+                    title: 'Chutney',
+                    label: 'F',
+                    location: {
+                        lat: 37.786029,
+                        lng: -122.413293
+                    }
+                },
+                {
+                    title: 'Pakwan',
+                    label: 'F',
+                    location: {
+                        lat: 37.78568,
+                        lng: -122.41316
+                    }
+                },
+                {
+                    title: 'Tiled Steps',
+                    label: 'T',
+                    location: {
+                        lat: 37.756271,
+                        lng: -122.473175
+                    }
+                },
+                {
+                    title: 'Squat & Gobble',
+                    label: 'F',
+                    location: {
+                        lat: 37.740635,
+                        lng: -122.46568
+                    }
+                },
+                {
+                    title: 'Clay Oven',
+                    label: 'F',
+                    location: {
+                        lat: 37.73664,
+                        lng: -122.470252
+                    }
+                },
+                {
+                    title: 'New Taraval Cafe',
+                    label: 'F',
+                    location: {
+                        lat: 37.743087,
+                        lng: -122.477732
+                    }
+                },
+                {
+                    title: 'Stonestown Galleria',
+                    label: 'S',
+                    location: {
+                        lat: 37.728031,
+                        lng: -122.477088
+                    }
+                },
+                {
+                    title: 'Ocean Beach',
+                    label: 'T',
+                    location: {
+                        lat: 37.759392,
+                        lng: -122.510734
+                    }
+                },
+                {
+                    title: 'Accion Latina',
+                    label: 'W',
+                    location: {
+                        lat: 37.752849,
+                        lng: -122.411328
+                    }
+                },
+                {
+                    title: 'Pier 39',
+                    label: 'T',
+                    location: {
+                        lat: 37.808382,
+                        lng: -122.41042
+                    }
+                },
+                {
+                    title: 'Presidio',
+                    label: 'T',
+                    location: {
+                        lat: 37.798874,
+                        lng: -122.466194
+                    }
+                },
+                {
+                    title: 'Crissy Field',
+                    label: 'T',
+                    location: {
+                        lat: 37.803907,
+                        lng: -122.464062
+                    }
+                },
+                {
+                    title: 'Golden Gate Park',
+                    label: 'T',
+                    location: {
+                        lat: 37.768391,
+                        lng: -122.47543
+                    }
+                },
+                {
+                    title: 'Islamic Society of San Francisco',
+                    label: 'M',
+                    location: {
+                        lat: 37.781474,
+                        lng: -122.411886
+                    }
+                },
+                {
+                    title: 'AT&T Park',
+                    label: 'T',
+                    location: {
+                        lat: 37.778595,
+                        lng: -122.38927
+                    }
+                },
+                {
+                    title: 'Union Square',
+                    label: 'T',
+                    location: {
+                        lat: 37.787994,
+                        lng: -122.407437
+                    }
+                },
+                {
+                    title: 'Twin Peaks',
+                    label: 'T',
+                    location: {
+                        lat: 37.754407,
+                        lng: -122.447684
+                    }
+                },
+                {
+                    title: 'San Francisco State University',
+                    label: 'S',
+                    location: {
+                        lat: 37.721897,
+                        lng: -122.478209
+                    }
+                },
+                {
+                    title: 'de Young Museum',
+                    label: 'T',
+                    location: {
+                        lat: 37.771469,
+                        lng: -122.468676
+                    }
+                },
+                {
+                    title: 'California Academy of Sciences',
+                    label: 'T',
+                    location: {
+                        lat: 37.769865,
+                        lng: -122.466095
+                    }
+                },
+            ]
+        var largeInfowindow = new google.maps.InfoWindow();
+        
+        // Style the markers a bit. This will be our listing marker icon.
+        var defaultIcon = makeMarkerIcon('0091ff');
+        // Create a "highlighted location" marker color for when the user
+        // mouses over the marker.
+        var highlightedIcon = makeMarkerIcon('FFFF24');
+        // The following group uses the location array to create an array of markers on initialize.
+        for (var i = 0; i < locations.length; i++) {
+                // Get the position from the location array.
+                var position = locations[i].location;
+                var title = locations[i].title;
+                // Create a marker per location, and put into markers array.
+                var marker = new google.maps.Marker({
+                    position: position,
+                    title: title,
+
+                    animation: google.maps.Animation.DROP,
+                    icon: defaultIcon,
+                    id: i
+                });
+          // Push the marker to our array of markers.
+         markers.push(marker);
+                // Create an onclick event to open the large infowindow at each marker.
+                marker.addListener('click', function() {
+                    populateInfoWindow(this, largeInfowindow);
+                });
+                // Two event listeners - one for mouseover, one for mouseout,
+                // to change the colors back and forth.
+                marker.addListener('mouseover', function() {
+                    this.setIcon(highlightedIcon);
+                });
+                marker.addListener('mouseout', function() {
+                    this.setIcon(defaultIcon);
+                });
+            } //for loop ends
+        document.getElementById('show-listings').addEventListener('click', showListings);
+            document.getElementById('hide-listings').addEventListener('click', function() {
+                hideMarkers(markers);
+            });
+            document.getElementById('zoom-to-area').addEventListener('click', function() {
+                zoomToArea();
+            });
+            document.getElementById('search-within-time').addEventListener('click', function() {
+                searchWithinTime();
+            });
+            searchBox.addListener('places_changed', function() {
+                searchBoxPlaces(this);
+            });
+            // Listen for the event fired when the user selects a prediction and clicks
+            // "go" more details for that place.
+            document.getElementById('go-places').addEventListener('click', textSearchPlaces);
+        // Add an event listener so that the polygon is captured,  call the
+        // searchWithinPolygon function. This will show the markers in the polygon,
+        // and hide any outside of it.
+      
+      }
+      // This function populates the infowindow when the marker is clicked. We'll only allow
+      // one infowindow which will open at the marker that is clicked, and populate based
+      // on that markers position.
+     function populateInfoWindow(marker, infowindow) {
+            // Check to make sure the infowindow is not already opened on this marker.
+            if (infowindow.marker != marker) {
+                infowindow.marker = marker;
+                infowindow.setContent('<div>' + marker.title + '</div>');
+                infowindow.open(map, marker);
+                // Make sure the marker property is cleared if the infowindow is closed.
+                infowindow.addListener('closeclick', function() {
+                    infowindow.setMarker = null;
+                });
+
+                function changeColor() {
+                    for (var i = 0; i < markers.length; i++) {
+                        markers[i].color = highlightedIcon;
+                    }
+                };
+
+                var streetViewService = new google.maps.StreetViewService();
+                var radius = 50;
+
+                function getStreetView(data, status) {
+                    if (status == google.maps.StreetViewStatus.OK) { //Or we can just use 'OK'
+                        var nearStreetViewLocation = data.location.latLng;
+                        var heading = google.maps.geometry.spherical.computeHeading(nearStreetViewLocation, marker.position);
+                        infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
+                        var panoramaOptions = {
+                            position: nearStreetViewLocation,
+                            pov: {
+                                heading: heading,
+                                pitch: 30
+                            }
+                        };
+
+                        var panorama = new google.maps.StreetViewPanorama(
+                            document.getElementById('pano'), panoramaOptions);
+                    } else {
+                        infowindow.setContent('<div>' + marker.title + '</div>' + '<div> No Street View Found </div>');
+                    }
+                }
+          // Use streetview service to get the closest streetview image within
+          // 50 meters of the markers position
+          streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+          // Open the infowindow on the correct marker.
+          infowindow.open(map, marker);
+        }
+      }
+      // This function will loop through the markers array and display them all.
+      function showListings() {
+            var bounds = new google.maps.LatLngBounds();
+            // Extend the boundaries of the map for each marker and display the marker
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(map);
+                bounds.extend(markers[i].position);
+            }
+            map.fitBounds(bounds);
+        }
+        // This function will loop through the listings and hide them all.
+        function hideMarkers(markers) {
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(null);
+            }
+        }
+      // This function takes in a COLOR, and then creates a new marker
+      // icon of that color. The icon will be 21 px wide by 34 high, have an origin
+      // of 0, 0 and be anchored at 10, 34).
+      function makeMarkerIcon(markerColor) {
+            var markerImage = new google.maps.MarkerImage(
+                'http://chart.googleapis.com/chart?chst=d_map_spin&chld=1.15|0|' + markerColor +
+                '|40|_|%E2%80%A2',
+                new google.maps.Size(21, 30),
+                new google.maps.Point(0, 0),
+                new google.maps.Point(10, 34),
+                new google.maps.Size(21, 30));
+            return markerImage;
+        }
+
+      
+      // This function takes the input value in the find nearby area text input
+      // locates it, and then zooms into that area. This is so that the user can
+      // show all listings, then decide to focus on one area of the map.
+      function zoomToArea() {
+            var geocoder = new google.maps.Geocoder();
+            var address = document.getElementById('zoom-to-area-text').value;
+            if (address == '') {
+                window.alert('You must enter an area or address');
+            } else {
+                geocoder.geocode({
+                    address: address,
+                    componentRestrictions: {
+                        locality: 'San Francisco'
+                    }
+                }, function(results, status) {
+                    if (status == google.maps.GeocoderStatus.OK) {
+                        map.setCenter(results[0].geometry.location);
+                        map.setZoom(15);
+                    } else {
+                        window.alert('We could not find the location - try entering a more specific location.');
+                    }
+                });
+            }
+        }
+      // This function allows the user to input a desired travel time, in
+      // minutes, and a travel mode, and a location - and only show the listings
+      // that are within that travel time (via that travel mode) of the location
+      function searchWithinTime() {
+        // Initialize the distance matrix service.
+        var distanceMatrixService = new google.maps.DistanceMatrixService;
+        var address = document.getElementById('search-within-time-text').value;
+        // Check to make sure the place entered isn't blank.
+        if (address == '') {
+          window.alert('You must enter an address.');
+        } else {
+          hideMarkers(markers);
+          // Use the distance matrix service to calculate the duration of the
+          // routes between all our markers, and the destination address entered
+          // by the user. Then put all the origins into an origin matrix.
+          var origins = [];
+          for (var i = 0; i < markers.length; i++) {
+            origins[i] = markers[i].position;
+          }
+          var destination = address;
+          var mode = document.getElementById('mode').value;
+          // Now that both the origins and destination are defined, get all the
+          // info for the distances between them.
+          distanceMatrixService.getDistanceMatrix({
+            origins: origins,
+            destinations: [destination],
+            travelMode: google.maps.TravelMode[mode],
+            unitSystem: google.maps.UnitSystem.IMPERIAL,
+          }, function(response, status) {
+            if (status !== google.maps.DistanceMatrixStatus.OK) {
+              window.alert('Error was: ' + status);
+            } else {
+              displayMarkersWithinTime(response);
+            }
+          });
+        }
+      }
+      // This function will go through each of the results, and,
+      // if the distance is LESS than the value in the picker, show it on the map.
+      function displayMarkersWithinTime(response) {
+            var maxDuration = document.getElementById('max-duration').value;
+            var origins = response.originAddresses;
+            var destinations = response.destinationAddresses;
+            // Parse through the results, and get the distance and duration of each.
+            // Because there might be  multiple origins and destinations we have a nested loop
+            // Then, make sure at least 1 result was found.
+            var atLeastOne = false;
+            for (var i = 0; i < origins.length; i++) {
+                var results = response.rows[i].elements;
+                for (var j = 0; j < results.length; j++) {
+                    var element = results[j];
+                    if (element.status === "OK") {
+                        // The distance is returned in feet, but the TEXT is in miles. If we wanted to switch
+                        // the function to show markers within a user-entered DISTANCE, we would need the
+                        // value for distance, but for now we only need the text.
+                        var distanceText = element.distance.text;
+                        // Duration value is given in seconds so we make it MINUTES. We need both the value
+                        // and the text.
+                        var duration = element.duration.value / 60;
+                        var durationText = element.duration.text;
+                        if (duration <= maxDuration) {
+                            //the origin [i] should = the markers[i]
+                            markers[i].setMap(map);
+                            atLeastOne = true;
+                            // Create a mini infowindow to open immediately and contain the
+                            // distance and duration
+                            var infowindow = new google.maps.InfoWindow({
+                                content: durationText + ' away, ' + distanceText +
+                                    '<div><input type=\"button\" value=\"View Route\" onclick =' +
+                                    '\"displayDirections(&quot;' + origins[i] + '&quot;);\"></input></div>'
+                            });
+                            infowindow.open(map, markers[i]);
+                            // Put this in so that this small window closes if the user clicks
+                            // the marker, when the big infowindow opens
+                            markers[i].infowindow = infowindow;
+                            google.maps.event.addListener(markers[i], 'click', function() {
+                                this.infowindow.close();
+                            });
+                        }
+                    }
+                }
+            }
+            if (!atLeastOne) {
+                window.alert('We could not find any locations within that distance!');
+            }
+        }
+      // This function is in response to the user seelecting "show route" on one
+      // of the markers within the desired commute. This will display the route
+      // on the map.
+      function displayDirections(origin) {
+            hideMarkers(markers);
+            var directionsService = new google.maps.DirectionsService;
+            // Get the destination address from the user entered value.
+            var destinationAddress =
+                document.getElementById('search-within-time-text').value;
+            // Get mode again from the user entered value.
+            var mode = document.getElementById('mode').value;
+            directionsService.route({
+                // The origin is the passed in marker's position.
+                origin: origin,
+                // The destination is user entered address.
+                destination: destinationAddress,
+                travelMode: google.maps.TravelMode[mode]
+            }, function(response, status) {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    var directionsDisplay = new google.maps.DirectionsRenderer({
+                        map: map,
+                        directions: response,
+                        draggable: true,
+                        polylineOptions: {
+                            strokeColor: 'green'
+                        }
+                    });
+                } else {
+                    window.alert('Directions request failed due to ' + status);
+                }
+            });
+        }
+      // This function is in response to the user selecting "show route" on one
+      // of the markers within the calculated distance. This will display the route
+      // on the map.
+      function displayDirections(origin) {
+            hideMarkers(markers);
+            var directionsService = new google.maps.DirectionsService;
+            // Get the destination address from the user entered value.
+            var destinationAddress =
+                document.getElementById('search-within-time-text').value;
+            // Get mode again from the user entered value.
+            var mode = document.getElementById('mode').value;
+            directionsService.route({
+                // The origin is the passed in marker's position.
+                origin: origin,
+                // The destination is user entered address.
+                destination: destinationAddress,
+                travelMode: google.maps.TravelMode[mode]
+            }, function(response, status) {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    var directionsDisplay = new google.maps.DirectionsRenderer({
+                        map: map,
+                        directions: response,
+                        draggable: true,
+                        polylineOptions: {
+                            strokeColor: 'green'
+                        }
+                    });
+                } else {
+                    window.alert('Directions request failed due to ' + status);
+                }
+            });
+        }
+      // This function fires when the user selects a searchbox picklist item.
+      // It will do a nearby search using the selected query string or place.
+      function searchBoxPlaces(searchBox) {
+            hideMarkers(placeMarkers);
+            var places = searchBox.getPlaces();
+            // For each place, get the icon, name and location.
+            createMarkersForPlaces(places);
+            if (places.length == 0) {
+                window.alert('We did not find any places matching that search!');
+            }
+        }
+      // This function firest when the user select "go" on the places search.
+      // It will do a nearby search using the entered query string or place.
+      function textSearchPlaces() {
+            var bounds = map.getBounds();
+            hideMarkers(placeMarkers);
+            var placesService = new google.maps.places.PlacesService(map);
+            placesService.textSearch({
+                query: document.getElementById('places-search').value,
+                bounds: bounds
+            }, function(results, status) {
+                if (status === google.maps.places.PlacesServiceStatus.OK) {
+                    createMarkersForPlaces(results);
+                }
+            });
+        }
+      // This function creates markers for each place found in either places search.
+     function createMarkersForPlaces(places) {
+            var bounds = new google.maps.LatLngBounds();
+            for (var i = 0; i < places.length; i++) {
+                var place = places[i];
+                var icon = {
+                    url: place.icon,
+                    size: new google.maps.Size(35, 35),
+                    origin: new google.maps.Point(0, 0),
+                    anchor: new google.maps.Point(15, 34),
+                    scaledSize: new google.maps.Size(25, 25)
+                };
+                // Create a marker for each place.
+                var marker = new google.maps.Marker({
+                    map: map,
+                    icon: icon,
+                    title: place.name,
+                    position: place.geometry.location,
+                    id: place.id
+                });
+                // If a marker is clicked, do a place details search on it in the next function.
+                marker.addListener('click', function() {
+                    getPlacesDetails(this, place);
+                });
+                placeMarkers.push(marker);
+                if (place.geometry.viewport) {
+                    // Only geocodes have viewport.
+                    bounds.union(place.geometry.viewport);
+                } else {
+                    bounds.extend(place.geometry.location);
+                }
+            }
+            map.fitBounds(bounds);
+        }
+    </script>
+
+     <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyCgkdN5CQGhTgNRwNzp8I-8b3WCEm4hTSo&v=3&callback=initMap">
+    </script>
+  </body>
+</html>
